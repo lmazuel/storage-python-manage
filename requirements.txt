@@ -1,3 +1,5 @@
 azure-mgmt-resource>=2.1.0
-azure-mgmt-storage>=3.0.0
+azure-identity
+git+https://github.com/Azure/azure-sdk-for-python@azure_mgmt_core#subdirectory=sdk/core/azure-mgmt-core&egg=azure-mgmt-core
+git+https://github.com/Azure/azure-sdk-for-python@mgmt_core#subdirectory=sdk/storage/azure-mgmt-storage&egg=azure-mgmt-storage
 haikunator
