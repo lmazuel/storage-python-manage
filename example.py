@@ -1,6 +1,8 @@
 import os
 from haikunator import Haikunator
 from azure.common.credentials import ServicePrincipalCredentials
+from azure.core.credentials import AccessToken
+from azure.identity import ClientSecretCredential
 from azure.mgmt.resource import ResourceManagementClient
 from azure.mgmt.storage import StorageManagementClient
 from azure.mgmt.storage.models import (
@@ -14,6 +16,32 @@ from azure.mgmt.storage.models import (
 WEST_US = 'westus'
 GROUP_NAME = 'azure-sample-group'
 STORAGE_ACCOUNT_NAME = Haikunator().haikunate(delimiter='')
+
+
+def get_credentials_identity():
+    subscription_id = os.environ.get(
+        'AZURE_SUBSCRIPTION_ID',
+        '11111111-1111-1111-1111-111111111111')  # your Azure Subscription Id
+    credentials = ClientSecretCredential(
+        client_id=os.environ['AZURE_CLIENT_ID'],
+        client_secret=os.environ['AZURE_CLIENT_SECRET'],
+        tenant_id=os.environ['AZURE_TENANT_ID']
+    )
+    return credentials, subscription_id
+
+def get_credentials_wrapper(msrestazure_credentials):
+
+    class MsrestAzureWrapper(object):
+        def __init__(self, credentials):
+            self._credentials = credentials
+
+        def get_token(self, *scopes, **kwargs):
+            self._credentials.set_token()
+            self._credentials._parse_token()
+            token = self._credentials.token
+            return AccessToken(token['access_token'], int(token['expires_on']))
+
+    return MsrestAzureWrapper(msrestazure_credentials)
 
 
 def get_credentials():
@@ -42,9 +70,11 @@ def run_example():
     # Create the Resource Manager Client with an Application (service principal) token provider
     #
     credentials, subscription_id = get_credentials()
+    #credentials_identity, subscription_id = get_credentials_identity()
+    credentials_identity = get_credentials_wrapper(credentials)
 
     resource_client = ResourceManagementClient(credentials, subscription_id)
-    storage_client = StorageManagementClient(credentials, subscription_id)
+    storage_client = StorageManagementClient(credentials_identity, subscription_id)
 
     # You MIGHT need to add Storage as a valid provider for these credentials
     # If so, this operation has to be done only once for each credentials
